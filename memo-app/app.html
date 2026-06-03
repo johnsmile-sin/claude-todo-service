@@ -41,12 +41,17 @@
       <button class="btn-back" id="btnBack">← 목록</button>
       <div class="toolbar-actions">
         <span class="save-status" id="saveStatusMobile"></span>
+        <button class="btn-important-mobile" id="btnImportantMobile" title="중요 표시">☆</button>
         <button class="btn-delete-mobile" id="btnDeleteMobile">🗑️</button>
       </div>
     </header>
 
     <main class="main">
       <aside class="sidebar" id="sidebar">
+        <div class="filter-tabs">
+          <button class="filter-tab active" id="filterAll">전체</button>
+          <button class="filter-tab" id="filterImportant">⭐ 중요</button>
+        </div>
         <div class="todo-count" id="todoCount">0개의 할일</div>
         <ul class="todo-list" id="todoList"></ul>
       </aside>
@@ -61,6 +66,7 @@
             <input type="text" class="title-input" id="titleInput" placeholder="할일을 입력하세요...">
             <div class="toolbar-actions">
               <span class="save-status" id="saveStatus"></span>
+              <button class="btn-important" id="btnImportant" title="중요 표시">☆ 중요</button>
               <button class="btn-delete" id="btnDelete">🗑️ 삭제</button>
             </div>
           </div>

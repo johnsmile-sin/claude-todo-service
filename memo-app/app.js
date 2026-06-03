@@ -9,6 +9,7 @@ let currentUser = null;
 let saveTimer   = null;
 let pendingDeleteId = null;
 let unsubTodos  = null;
+let filterMode  = 'all'; // 'all' | 'important'
 
 // ── DOM ──
 const loadingScreen = document.getElementById('loadingScreen');
@@ -28,6 +29,8 @@ const lastModified  = document.getElementById('lastModified');
 const searchInput   = document.getElementById('searchInput');
 const deleteModal   = document.getElementById('deleteModal');
 const userBadge     = document.getElementById('userBadge');
+const btnImportant  = document.getElementById('btnImportant');
+const btnImportantMb = document.getElementById('btnImportantMobile');
 
 // ════════════════════════════════════════
 //  인증 상태 감지 — 페이지 진입 시 확인
@@ -72,9 +75,22 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
   window.location.href = 'index.html';
 });
 
+// ── 필터 탭 ──
+document.getElementById('filterAll').addEventListener('click', () => setFilter('all'));
+document.getElementById('filterImportant').addEventListener('click', () => setFilter('important'));
+
+function setFilter(mode) {
+  filterMode = mode;
+  document.getElementById('filterAll').classList.toggle('active', mode === 'all');
+  document.getElementById('filterImportant').classList.toggle('active', mode === 'important');
+  renderList(searchInput.value);
+}
+
 document.getElementById('btnNew').addEventListener('click', createTodo);
 document.getElementById('btnDelete').addEventListener('click', () => openDeleteModal(currentId));
 document.getElementById('btnDeleteMobile').addEventListener('click', () => openDeleteModal(currentId));
+btnImportant.addEventListener('click', () => toggleImportant(currentId));
+btnImportantMb.addEventListener('click', () => toggleImportant(currentId));
 document.getElementById('btnBack').addEventListener('click', goBackToList);
 document.getElementById('btnConfirm').addEventListener('click', confirmDelete);
 document.getElementById('btnCancel').addEventListener('click', closeDeleteModal);
@@ -119,6 +135,7 @@ function createTodo() {
     dueDate:    '',
     notes:      '',
     done:       false,
+    important:  false,
     authorName: currentUser.name,
     authorId:   currentUser.uid,
     createdAt:  new Date().toISOString(),
@@ -155,7 +172,28 @@ function openTodo(id) {
     el.classList.toggle('active', el.dataset.id === id);
   });
 
+  updateImportantButtons(!!todo.important);
   showEditor();
+}
+
+function toggleImportant(id) {
+  if (!currentUser) return;
+  const todo = getTodo(id);
+  if (!todo) return;
+  const next = !todo.important;
+  update(ref(db, `todos/${currentUser.uid}/${id}`), {
+    important: next,
+    updatedAt: new Date().toISOString(),
+  });
+  updateImportantButtons(next);
+}
+
+function updateImportantButtons(isImportant) {
+  const label = isImportant ? '⭐ 중요' : '☆ 중요';
+  btnImportant.textContent   = label;
+  btnImportantMb.textContent = isImportant ? '⭐' : '☆';
+  btnImportant.classList.toggle('active', isImportant);
+  btnImportantMb.classList.toggle('active', isImportant);
 }
 
 function toggleDone(id) {
@@ -230,23 +268,30 @@ function confirmDelete() {
 
 function renderList(query = '') {
   const q = query.trim().toLowerCase();
-  const base = q
+  let base = q
     ? todos.filter(t =>
         (t.title || '').toLowerCase().includes(q) ||
         (t.notes || '').toLowerCase().includes(q)
       )
     : todos;
 
+  if (filterMode === 'important') {
+    base = base.filter(t => t.important);
+  }
+
   const sorted = [...base].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
+    if (!!a.important !== !!b.important) return a.important ? -1 : 1;
     if (!a.dueDate && !b.dueDate) return 0;
     if (!a.dueDate) return 1;
     if (!b.dueDate) return -1;
     return a.dueDate.localeCompare(b.dueDate);
   });
 
-  const undoneCount = sorted.filter(t => !t.done).length;
-  todoCount.textContent = `${undoneCount}개 남음 / 전체 ${sorted.length}개`;
+  const undoneCount   = sorted.filter(t => !t.done).length;
+  const importantCount = todos.filter(t => t.important && !t.done).length;
+  const importantBadge = importantCount > 0 ? ` · ⭐ ${importantCount}개` : '';
+  todoCount.textContent = `${undoneCount}개 남음 / 전체 ${sorted.length}개${importantBadge}`;
   todoList.innerHTML = '';
 
   if (sorted.length === 0) {
@@ -261,8 +306,9 @@ function renderList(query = '') {
     const li = document.createElement('li');
     const isActive = todo.id === currentId;
     li.className = 'todo-item'
-      + (isActive ? ' active' : '')
-      + (todo.done  ? ' done'   : '');
+      + (isActive        ? ' active'    : '')
+      + (todo.done       ? ' done'      : '')
+      + (todo.important  ? ' important' : '');
     li.dataset.id = todo.id;
 
     const title     = todo.title || '제목 없음';
@@ -271,6 +317,9 @@ function renderList(query = '') {
       : '';
     const authorTag = todo.authorName
       ? `<span class="todo-item-author">✍ ${escapeHtml(todo.authorName)}</span>`
+      : '';
+    const starTag = todo.important
+      ? `<span class="todo-item-star">⭐</span>`
       : '';
 
     li.innerHTML = `
@@ -281,6 +330,7 @@ function renderList(query = '') {
         <div class="todo-item-title">${q ? highlight(title, q) : escapeHtml(title)}</div>
         <div class="todo-item-meta">${dueBadge}${authorTag}</div>
       </div>
+      ${starTag}
     `;
 
     li.querySelector('.todo-checkbox').addEventListener('change', (e) => {

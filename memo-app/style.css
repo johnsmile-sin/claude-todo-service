@@ -345,6 +345,32 @@ body {
   overflow: hidden;
 }
 
+/* ───── 필터 탭 ───── */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 2px 4px;
+}
+
+.filter-tab {
+  padding: 6px 16px;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 20px;
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.filter-tab:hover { background: rgba(255,255,255,0.28); color: #fff; }
+.filter-tab.active {
+  background: rgba(255,255,255,0.92);
+  border-color: rgba(255,255,255,0.9);
+  color: #7b5ea7;
+}
+
 .todo-count {
   font-size: 12px;
   font-weight: 600;
@@ -385,6 +411,21 @@ body {
 
 .todo-item.done { opacity: 0.6; }
 .todo-item.done .todo-item-title { text-decoration: line-through; color: #999; }
+
+.todo-item.important {
+  border-color: #f5c518;
+  box-shadow: 0 2px 14px rgba(245,197,24,0.2);
+}
+.todo-item.important:hover { box-shadow: 0 4px 22px rgba(245,197,24,0.32); }
+.todo-item.important.active { border-color: #f5c518; }
+
+.todo-item-star {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 15px;
+  line-height: 1;
+}
 
 .todo-check-wrap {
   flex-shrink: 0;
@@ -518,6 +559,38 @@ body {
   min-width: 52px;
   text-align: right;
 }
+
+/* 중요 버튼 (데스크탑 툴바) */
+.btn-important {
+  padding: 7px 13px;
+  background: #fffbea;
+  border: 1.5px solid #e8d87a;
+  border-radius: 20px;
+  color: #bbb;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.btn-important:hover { border-color: #f5c518; color: #f5c518; }
+.btn-important.active { color: #f5c518; border-color: #f5c518; background: #fffbea; }
+
+/* 중요 버튼 (모바일 툴바) */
+.btn-important-mobile {
+  padding: 9px 13px;
+  background: rgba(255,255,255,0.85);
+  border: 1.5px solid rgba(255,255,255,0.6);
+  border-radius: 20px;
+  color: #ccc;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.btn-important-mobile:hover { color: #f5c518; }
+.btn-important-mobile.active { color: #f5c518; }
 
 .btn-delete {
   padding: 7px 15px;
