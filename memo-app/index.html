@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 - MY TODO</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-circles">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+    <div class="circle circle-4"></div>
+  </div>
+
+  <div class="auth-screen">
+    <div class="auth-card">
+      <h1 class="auth-logo">MY TODO</h1>
+      <h2 class="auth-title">로그인</h2>
+
+      <div class="auth-error hidden" id="loginError"></div>
+
+      <input type="email"    class="auth-input" id="loginId" placeholder="아이디 (이메일)" autocomplete="email">
+      <input type="password" class="auth-input" id="loginPw" placeholder="비밀번호" autocomplete="current-password">
+
+      <button class="auth-btn" id="btnLogin">로그인</button>
+
+      <div class="auth-links">
+        <a class="auth-link" href="forgot-password.html">비밀번호 찾기</a>
+        <a class="auth-link" href="signup.html">회원가입</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="login.js"></script>
+</body>
+</html>

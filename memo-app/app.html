@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY TODO</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="bg-circles">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+    <div class="circle circle-4"></div>
+  </div>
+
+  <!-- 인증 확인 중 로딩 화면 -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- 메인 앱 (인증 확인 후 표시) -->
+  <div class="app hidden" id="mainApp">
+
+    <header class="header header-list">
+      <div class="header-top">
+        <h1 class="logo">MY TODO</h1>
+        <div class="user-bar">
+          <span class="user-badge" id="userBadge"></span>
+          <button class="btn-logout" id="btnLogout">로그아웃</button>
+        </div>
+      </div>
+      <div class="header-actions">
+        <input type="text" class="search-input" id="searchInput" placeholder="할일 검색...">
+        <button class="btn-new" id="btnNew">+ 새 할일</button>
+      </div>
+    </header>
+
+    <header class="header header-editor hidden-desktop">
+      <button class="btn-back" id="btnBack">← 목록</button>
+      <div class="toolbar-actions">
+        <span class="save-status" id="saveStatusMobile"></span>
+        <button class="btn-delete-mobile" id="btnDeleteMobile">🗑️</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="sidebar" id="sidebar">
+        <div class="todo-count" id="todoCount">0개의 할일</div>
+        <ul class="todo-list" id="todoList"></ul>
+      </aside>
+
+      <section class="editor" id="editor">
+        <div class="editor-empty" id="editorEmpty">
+          <div class="empty-icon">✅</div>
+          <p>새 할일을 만들거나 기존 할일을 선택하세요</p>
+        </div>
+        <div class="editor-content hidden" id="editorContent">
+          <div class="editor-toolbar hidden-mobile">
+            <input type="text" class="title-input" id="titleInput" placeholder="할일을 입력하세요...">
+            <div class="toolbar-actions">
+              <span class="save-status" id="saveStatus"></span>
+              <button class="btn-delete" id="btnDelete">🗑️ 삭제</button>
+            </div>
+          </div>
+          <div class="mobile-title-wrap hidden-desktop">
+            <input type="text" class="title-input" id="titleInputMobile" placeholder="할일을 입력하세요...">
+          </div>
+          <div class="date-wrap">
+            <label class="date-label">📅 일정</label>
+            <input type="date" class="date-input" id="dateInput">
+          </div>
+          <textarea class="body-input" id="bodyInput" placeholder="메모를 입력하세요..."></textarea>
+          <div class="editor-footer">
+            <span class="char-count" id="charCount">0자</span>
+            <span class="last-modified" id="lastModified"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal-box">
+      <p>이 할일을 삭제할까요?</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="btnCancel">취소</button>
+        <button class="btn-confirm" id="btnConfirm">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

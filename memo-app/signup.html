@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 - MY TODO</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-circles">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+    <div class="circle circle-4"></div>
+  </div>
+
+  <div class="auth-screen">
+    <div class="auth-card">
+      <h1 class="auth-logo">MY TODO</h1>
+      <h2 class="auth-title">회원가입</h2>
+
+      <div class="auth-error hidden" id="signupError"></div>
+
+      <input type="text"     class="auth-input" id="signupOrg"       placeholder="소속">
+      <input type="text"     class="auth-input" id="signupName"      placeholder="이름">
+      <input type="email"    class="auth-input" id="signupId"        placeholder="아이디 (이메일)" autocomplete="email">
+      <input type="password" class="auth-input" id="signupPw"        placeholder="비밀번호 (6자 이상)" autocomplete="new-password">
+      <input type="password" class="auth-input" id="signupPwConfirm" placeholder="비밀번호 확인" autocomplete="new-password">
+
+      <button class="auth-btn" id="btnSignup">회원가입</button>
+
+      <a class="auth-link center" href="index.html">← 로그인으로 돌아가기</a>
+    </div>
+  </div>
+
+  <script type="module" src="signup.js"></script>
+</body>
+</html>
