@@ -1,6 +1,4 @@
-import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
-import { ref, push, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
+import { api, clearToken } from './api.js';
 
 // ── 앱 상태 ──
 let todos       = [];
@@ -8,7 +6,7 @@ let currentId   = null;
 let currentUser = null;
 let saveTimer   = null;
 let pendingDeleteId = null;
-let unsubTodos  = null;
+let pollTimer   = null;
 let filterMode  = 'all'; // 'all' | 'important'
 
 // ── DOM ──
@@ -33,45 +31,68 @@ const btnImportant  = document.getElementById('btnImportant');
 const btnImportantMb = document.getElementById('btnImportantMobile');
 
 // ════════════════════════════════════════
-//  인증 상태 감지 — 페이지 진입 시 확인
+//  초기화 — 토큰 확인 후 프로필·할일 로드
 // ════════════════════════════════════════
-onAuthStateChanged(auth, async (user) => {
-  loadingScreen.classList.add('hidden');
-
-  if (!user) {
+async function init() {
+  const token = localStorage.getItem('idToken');
+  if (!token) {
     window.location.href = 'index.html';
     return;
   }
 
-  // 사용자 프로필 로드
-  const snap    = await get(ref(db, `users/${user.uid}`));
-  const profile = snap.val() || {};
-  currentUser   = { uid: user.uid, email: user.email, name: profile.name || '', org: profile.org || '' };
+  try {
+    const [profile, todoData] = await Promise.all([
+      api.users.me(),
+      api.todos.list(),
+    ]);
 
-  userBadge.textContent = `${currentUser.org} · ${currentUser.name}(${currentUser.email})`;
-  mainApp.classList.remove('hidden');
+    // 401 응답 시 api.js가 자동으로 index.html로 리다이렉트
+    if (!profile || !todoData) return;
 
-  setupTodosListener(user.uid);
-});
+    currentUser = {
+      uid:   localStorage.getItem('uid') || '',
+      name:  profile.name  || '',
+      org:   profile.org   || '',
+      email: profile.email || '',
+    };
 
-function setupTodosListener(uid) {
-  if (unsubTodos) unsubTodos();
-  unsubTodos = onValue(ref(db, `todos/${uid}`), (snapshot) => {
-    const data = snapshot.val();
-    todos = data
-      ? Object.entries(data).map(([id, val]) => ({ id, ...val }))
-      : [];
-    todos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    renderList(searchInput.value);
-  });
+    userBadge.textContent = `${currentUser.org} · ${currentUser.name}(${currentUser.email})`;
+    loadingScreen.classList.add('hidden');
+    mainApp.classList.remove('hidden');
+
+    updateTodos(todoData);
+    startPolling();
+  } catch (err) {
+    console.error('초기화 실패:', err);
+    loadingScreen.innerHTML = '<p style="color:#fff;padding:20px;">서버 연결 실패. 잠시 후 다시 시도해주세요.</p>';
+  }
+}
+
+function updateTodos(data) {
+  todos = Array.isArray(data) ? data : [];
+  todos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  renderList(searchInput.value);
+}
+
+// ── 폴링: 5초마다 할일 목록 갱신 ──
+function startPolling() {
+  pollTimer = setInterval(async () => {
+    const data = await api.todos.list();
+    if (data) updateTodos(data);
+  }, 5000);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
 // ════════════════════════════════════════
 //  이벤트 등록
 // ════════════════════════════════════════
 document.getElementById('btnLogout').addEventListener('click', async () => {
-  if (unsubTodos) { unsubTodos(); unsubTodos = null; }
-  await signOut(auth);
+  stopPolling();
+  await api.auth.logout();
+  clearToken();
   window.location.href = 'index.html';
 });
 
@@ -125,22 +146,14 @@ function goBackToList() {
   mainApp.classList.remove('editor-open');
 }
 
-function createTodo() {
+async function createTodo() {
   if (!currentUser) return;
-  const newRef = push(ref(db, `todos/${currentUser.uid}`));
-  currentId = newRef.key;
 
-  set(newRef, {
-    title:      '',
-    dueDate:    '',
-    notes:      '',
-    done:       false,
-    important:  false,
-    authorName: currentUser.name,
-    authorId:   currentUser.uid,
-    createdAt:  new Date().toISOString(),
-    updatedAt:  new Date().toISOString(),
-  });
+  const todo = await api.todos.create(currentUser.name);
+  if (!todo) return;
+
+  currentId = todo.id;
+  todos.unshift(todo);
 
   editorEmpty.classList.add('hidden');
   editorContent.classList.remove('hidden');
@@ -151,6 +164,7 @@ function createTodo() {
   charCount.textContent    = '0자';
   lastModified.textContent = '방금 전';
 
+  renderList(searchInput.value);
   (isMobile() ? titleInputMb : titleInput).focus();
   showEditor();
 }
@@ -176,16 +190,17 @@ function openTodo(id) {
   showEditor();
 }
 
-function toggleImportant(id) {
+async function toggleImportant(id) {
   if (!currentUser) return;
   const todo = getTodo(id);
   if (!todo) return;
   const next = !todo.important;
-  update(ref(db, `todos/${currentUser.uid}/${id}`), {
-    important: next,
-    updatedAt: new Date().toISOString(),
-  });
+
+  // 로컬 즉시 반영
+  todo.important = next;
   updateImportantButtons(next);
+
+  await api.todos.update(id, { important: next });
 }
 
 function updateImportantButtons(isImportant) {
@@ -196,14 +211,17 @@ function updateImportantButtons(isImportant) {
   btnImportantMb.classList.toggle('active', isImportant);
 }
 
-function toggleDone(id) {
+async function toggleDone(id) {
   if (!currentUser) return;
   const todo = getTodo(id);
   if (!todo) return;
-  update(ref(db, `todos/${currentUser.uid}/${id}`), {
-    done:      !todo.done,
-    updatedAt: new Date().toISOString(),
-  });
+  const next = !todo.done;
+
+  // 로컬 즉시 반영
+  todo.done = next;
+  renderList(searchInput.value);
+
+  await api.todos.update(id, { done: next });
 }
 
 function onEditorChange() {
@@ -221,13 +239,15 @@ function onEditorChange() {
   setSaveStatus('저장 중...');
 
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    update(ref(db, `todos/${currentUser.uid}/${currentId}`), {
-      title, notes, dueDate,
-      updatedAt: new Date().toISOString(),
-    });
+  saveTimer = setTimeout(async () => {
+    await api.todos.update(currentId, { title, notes, dueDate });
     setSaveStatus('저장됨');
     lastModified.textContent = '방금 전';
+
+    // 로컬 todos 동기화
+    const todo = getTodo(currentId);
+    if (todo) { todo.title = title; todo.notes = notes; todo.dueDate = dueDate; }
+
     setTimeout(() => setSaveStatus(''), 1500);
   }, 400);
 }
@@ -253,9 +273,11 @@ function closeDeleteModal() {
   deleteModal.classList.add('hidden');
 }
 
-function confirmDelete() {
+async function confirmDelete() {
   if (!pendingDeleteId || !currentUser) return;
-  remove(ref(db, `todos/${currentUser.uid}/${pendingDeleteId}`));
+
+  await api.todos.delete(pendingDeleteId);
+  todos = todos.filter(t => t.id !== pendingDeleteId);
 
   if (currentId === pendingDeleteId) {
     currentId = null;
@@ -263,6 +285,8 @@ function confirmDelete() {
     editorContent.classList.add('hidden');
     goBackToList();
   }
+
+  renderList(searchInput.value);
   closeDeleteModal();
 }
 
@@ -288,7 +312,7 @@ function renderList(query = '') {
     return a.dueDate.localeCompare(b.dueDate);
   });
 
-  const undoneCount   = sorted.filter(t => !t.done).length;
+  const undoneCount    = sorted.filter(t => !t.done).length;
   const importantCount = todos.filter(t => t.important && !t.done).length;
   const importantBadge = importantCount > 0 ? ` · ⭐ ${importantCount}개` : '';
   todoCount.textContent = `${undoneCount}개 남음 / 전체 ${sorted.length}개${importantBadge}`;
@@ -311,8 +335,8 @@ function renderList(query = '') {
       + (todo.important  ? ' important' : '');
     li.dataset.id = todo.id;
 
-    const title     = todo.title || '제목 없음';
-    const dueBadge  = todo.dueDate
+    const title    = todo.title || '제목 없음';
+    const dueBadge = todo.dueDate
       ? `<span class="due-badge ${getDueBadgeClass(todo)}">${formatDueDate(todo.dueDate)}</span>`
       : '';
     const authorTag = todo.authorName
@@ -392,3 +416,6 @@ function highlight(text, query) {
   const safeQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return safe.replace(new RegExp(safeQuery, 'gi'), m => `<mark class="highlight">${m}</mark>`);
 }
+
+// ── 앱 시작 ──
+init();
