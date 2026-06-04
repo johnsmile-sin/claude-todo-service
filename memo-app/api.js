@@ -1,6 +1,4 @@
-// 로컬: 'http://localhost:3000'
-// 배포 후: 'https://your-backend.railway.app' 으로 변경
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://claude-todo-service.onrender.com';
 
 function getToken()      { return localStorage.getItem('idToken'); }
 export function setToken(token) { localStorage.setItem('idToken', token); }
